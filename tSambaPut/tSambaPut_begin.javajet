@@ -1,0 +1,157 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser
+		org.talend.core.model.metadata.IMetadataTable
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		java.util.List
+		java.util.Map
+	"
+%>
+
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();	
+	String host = ElementParameterParser.getValue(node, "__HOST__");
+	String user = ElementParameterParser.getValue(node, "__USERNAME__");
+	String pass = ElementParameterParser.getValue(node, "__PASSWORD__");
+	String overwrite = ElementParameterParser.getValue(node, "__OVERWRITE__");
+	String localfile = ElementParameterParser.getValue(node, "__LOCALFILE__");
+	boolean useStream = ("true").equals(ElementParameterParser.getValue(node,"__USESTREAM__"));
+	String inStream = ElementParameterParser.getValue(node,"__STREAMNAME__");
+
+	String remotefile = ElementParameterParser.getValue(node, "__REMOTEFILE__");
+	String shareddirectory=ElementParameterParser.getValue(node, "__SHAREDIR__");
+	String domain=ElementParameterParser.getValue(node, "__DOMAIN__");
+	boolean creatDir=ElementParameterParser.getValue(node, "__CREATE_DIRECTORY__").equals("true");	
+	
+    boolean useProxy = ElementParameterParser.getValue(node,"__USE_PROXY__").equals("true");
+    String proxyHost = ElementParameterParser.getValue(node,"__PROXY_HOST__");
+    String proxyPort = ElementParameterParser.getValue(node,"__PROXY_PORT__");
+    String proxyUser = ElementParameterParser.getValue(node,"__PROXY_USERNAME__");
+//    String proxyPassword = ElementParameterParser.getValue(node,"__PROXY_PASSWORD__");
+	boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
+    
+    List<Map<String, String>> jcifs_config = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__JCIFS_CONFIG__");
+	final boolean isLog4jEnabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__"));
+	String cid = node.getUniqueName();
+ %>
+	
+	String URLDirectory_<%=cid%>="smb://"+<%=host%>+"/"+<%=shareddirectory%>;
+	String URLFile_<%=cid%>="smb://"+<%=host%>+"/"+<%=shareddirectory%>+"/"+<%=remotefile%>;
+<%
+//Since we never put false to globalMap it can only return null or true, 
+// if it returns null then we use the isEanbleDebug flag, and when  that's true 
+//then all the other tSamba components will work in Debug mode.
+%>
+if ( (boolean)globalMap.getOrDefault("tSamba_isEnableDebug",<%=isEnableDebug%>) ) { 
+	org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.DEBUG);
+	globalMap.put("tSamba_isEnableDebug", true);
+} else {
+	org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.INFO);
+}
+<%
+//The following part support the socks proxy for FTP and SFTP (Socks V4 or V5, they are all OK). 
+//And it can not work with the FTP proxy directly, only support the socks proxy.
+if(useProxy){
+%>
+{
+		if(<%=isLog4jEnabled%>){
+		log.debug("<%=cid%> - Enabling SOCKS proxy over "+<%=proxyHost %>+":"+<%=proxyPort %>+".");
+		}
+        java.util.Properties sysProps_<%=cid%> = System.getProperties();
+        sysProps_<%=cid%>.put("socksProxySet",  "true");
+        sysProps_<%=cid%>.put("socksProxyPort", <%=proxyPort %>);
+        sysProps_<%=cid%>.put("socksProxyHost", <%=proxyHost %>);
+        sysProps_<%=cid%>.put("java.net.socks.username", <%=proxyUser %>);
+<%
+            String passwordFieldName = "__PROXY_PASSWORD__";
+%>
+        <%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
+        sysProps_<%=cid%>.put("java.net.socks.password", decryptedPassword_<%=cid%>);
+}
+<%}%>
+
+
+		java.util.Properties props_<%=cid%> = new java.util.Properties();
+		//props_<%=cid%>.setProperty("jcifs.netbios.wins", <%=host%>);
+//Configure based on the properties table
+<%
+		for (int i=0; i<jcifs_config.size(); i++) {
+%>
+    		props_<%=cid%>.setProperty(<%=jcifs_config.get(i).get("KEY")%>,<%=jcifs_config.get(i).get("VALUE")%>);
+    		if(<%=isLog4jEnabled%>){
+    			log.trace("<%=cid%> - Setting JCIFS property key: '"+<%=jcifs_config.get(i).get("KEY")%>+"' value: '" + <%=jcifs_config.get(i).get("VALUE")%> + "'.");
+			}
+<%
+		}
+%>
+		jcifs.CIFSContext cifsContext_<%=cid%> = new jcifs.context.BaseContext(new jcifs.config.PropertyConfiguration(props_<%=cid%>));
+
+<%
+	    String passwordFieldName = "__PASSWORD__";
+%>
+
+    	<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
+
+		cifsContext_<%=cid%> = cifsContext_<%=cid%>.withCredentials(new jcifs.smb.NtlmPasswordAuthenticator(<%=domain%>, <%=user%>, decryptedPassword_<%=cid%>));
+
+	
+		byte[] b_<%=cid%> = new byte[65535];
+		int n_<%=cid%>;
+
+		if(<%=isLog4jEnabled%>){
+			log.debug("<%=cid%> - Target File - " +URLFile_<%=cid%>);
+		}
+		jcifs.smb.SmbFile sf_<%=cid%> = new jcifs.smb.SmbFile(URLFile_<%=cid%>,cifsContext_<%=cid%>);
+		<%if(creatDir){%>
+				if (sf_<%=cid%> != null && (new jcifs.smb.SmbFile(sf_<%=cid%>.getParent(),cifsContext_<%=cid%>)).exists() == false ) {
+					if(<%=isLog4jEnabled%>){
+					log.debug("<%=cid%> - Creating Directory - " +URLFile_<%=cid%>);
+					}
+					(new jcifs.smb.SmbFile(sf_<%=cid%>.getParent(),cifsContext_<%=cid%>)).mkdirs();
+				}
+		<%}%>
+
+
+		jcifs.smb.SmbFileOutputStream smb_os_<%=cid%> = new jcifs.smb.SmbFileOutputStream(sf_<%=cid%>);	
+
+<%if(useStream){
+//determine what stream and make sure it's an input stream.
+	%>
+	boolean isInputStream_<%=cid%> = false;
+	try {
+		java.io.InputStream localfile_in_<%=cid%> = (java.io.InputStream)(Object) (<%=inStream%>);
+		isInputStream_<%=cid%> = true;
+	} catch (Exception e) {
+<%
+//do nothing.
+%>
+	}
+
+	java.io.InputStream localfile_in_<%=cid%> = null;
+	if(isInputStream_<%=cid%>) {
+		localfile_in_<%=cid%> = (java.io.InputStream) <%=inStream%>;
+	} else {
+<%
+//we assume we have  a ByteArrayStream
+%>
+		java.io.ByteArrayOutputStream bos_<%=cid%> = (java.io.ByteArrayOutputStream)(Object)<%=inStream%>;
+		localfile_in_<%=cid%> = new java.io.ByteArrayInputStream( bos_<%=cid%>.toByteArray() );
+		bos_<%=cid%>.close();
+	}
+<%} else {%>
+		java.io.InputStream localfile_in_<%=cid%> = new java.io.FileInputStream(new java.io.File(<%=localfile%>));	
+<%}%>
+		while(( n_<%=cid%> = localfile_in_<%=cid%>.read(b_<%=cid%>))>0) {			
+			smb_os_<%=cid%>.write(b_<%=cid%>,0,n_<%=cid%>);		    
+		}
+		
+		localfile_in_<%=cid%>.close();
+		smb_os_<%=cid%>.close();
+		if(<%=isLog4jEnabled%>){
+			log.info("<%=cid%> - Target File - " +URLFile_<%=cid%> + " - created.");
+		}
+
+		globalMap.put("<%=cid%>_REMOTEFILEPATH", URLFile_<%=cid%>);
+		globalMap.put("<%=cid%>_LOCALFILEPATH", <%=localfile%>);
