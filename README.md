@@ -26,3 +26,5 @@ https://www.qvera.com/kb/index.php/2243/what-are-the-network-share-configuration
 
 ### Changelog: 
 v2.0 - 2020 July 02 - Initial release.
+### Changelog: 
+v2.1 - Added Streaming option for Input component

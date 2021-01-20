@@ -28,6 +28,8 @@
     String proxyUser = ElementParameterParser.getValue(node,"__PROXY_USERNAME__");
 //    String proxyPassword = ElementParameterParser.getValue(node,"__PROXY_PASSWORD__");
 	boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
+
+	boolean bUseCache = "true".equals(ElementParameterParser.getValue(node, "__USE_CACHE__"));
     
     List<Map<String, String>> jcifs_config = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__JCIFS_CONFIG__");
 	final boolean isLog4jEnabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__"));
@@ -94,6 +96,7 @@ if(useProxy){
 
 		cifsContext_<%=cid%> = cifsContext_<%=cid%>.withCredentials(new jcifs.smb.NtlmPasswordAuthenticator(<%=domain%>, <%=user%>, decryptedPassword_<%=cid%>));
 
+	<%if (!bUseCache) {%>
 
 		byte[] b_<%=cid%> = new byte[65535];
 		int n_<%=cid%>;
@@ -107,9 +110,15 @@ if(useProxy){
 					localdirectory_<%=cid%>.mkdirs();
 				}
 		<%}%>
+	<%} else {%>
+		java.io.InputStream retIS_<%=cid%> = null;
+	<% } %>
 
 		jcifs.smb.SmbFile sf_<%=cid%> = new jcifs.smb.SmbFile(URLFile_<%=cid%>,cifsContext_<%=cid%>);
 		if(sf_<%=cid%> != null && sf_<%=cid%>.exists()) {
+	<%if (bUseCache) {%>
+			retIS_<%=cid%> = new jcifs.smb.SmbFileInputStream(sf_<%=cid%>);
+	<% } else { %>
 			jcifs.smb.SmbFileInputStream smb_in_<%=cid%> = new jcifs.smb.SmbFileInputStream(sf_<%=cid%>);	
 			java.io.FileOutputStream localfile_os_<%=cid%>= new java.io.FileOutputStream(localfile_<%=cid%>);
 
@@ -119,9 +128,17 @@ if(useProxy){
 		
 			localfile_os_<%=cid%>.close();
 			smb_in_<%=cid%>.close();
+	<% } %>
 		} else {
 			throw new java.io.FileNotFoundException("<%=cid%> - Remote file doesn't exists! - " + URLFile_<%=cid%>);
 		}
-
-		globalMap.put("<%=cid%>_REMOTEFILEPATH", URLFile_<%=cid%>);
+	<%if (bUseCache) {%>
+		java.io.InputStream stream<%=cid%> = (java.io.InputStream)globalMap.get("<%=cid%>_INPUT_STREAM");
+		if(stream<%=cid%>!=null){
+			stream<%=cid%>.close();
+		}
+		globalMap.put("<%=cid%>_INPUT_STREAM", retIS_<%=cid%>);
+	<%} else {%>
 		globalMap.put("<%=cid%>_LOCALFILEPATH", <%=localfile%>);
+	<%}%>
+		globalMap.put("<%=cid%>_REMOTEFILEPATH", URLFile_<%=cid%>);
