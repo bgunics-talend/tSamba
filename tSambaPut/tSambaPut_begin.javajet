@@ -34,6 +34,7 @@
     
     List<Map<String, String>> jcifs_config = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__JCIFS_CONFIG__");
 	final boolean isLog4jEnabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__"));
+	final boolean isLog4j2Enabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J2_ACTIVATE__"));//log4j2 enable
 	String cid = node.getUniqueName();
  %>
 	
@@ -45,10 +46,18 @@
 //then all the other tSamba components will work in Debug mode.
 %>
 if ( (boolean)globalMap.getOrDefault("tSamba_isEnableDebug",<%=isEnableDebug%>) ) { 
-	org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.DEBUG);
-	globalMap.put("tSamba_isEnableDebug", true);
+    <%if(isLog4j2Enabled){%>
+      org.apache.logging.log4j.core.config.Configurator.setLevel("jcifs", org.apache.logging.log4j.Level.DEBUG);
+    <%} else if(isLog4jEnabled){%>
+      org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.DEBUG);
+    <%}%>
+  globalMap.put("tSamba_isEnableDebug", true);
 } else {
-	org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.INFO);
+    <%if(isLog4j2Enabled){%>
+      org.apache.logging.log4j.core.config.Configurator.setLevel("jcifs", org.apache.logging.log4j.Level.INFO);
+    <%} else if(isLog4jEnabled){%>
+      org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.INFO);
+    <%}%>
 }
 <%
 //The following part support the socks proxy for FTP and SFTP (Socks V4 or V5, they are all OK). 
