@@ -106,7 +106,7 @@
   
   <CODEGENERATION>
      <IMPORTS>
-       <IMPORT NAME="jcifs-2.1.16" MODULE="jcifs-2.1.16.jar" MVN="mvn:org.codelibs/jcifs/2.1.16" REQUIRED="true" />
+       <IMPORT NAME="jcifs-ng-2.1.6" MODULE="jcifs-ng-2.1.6.jar" MVN="mvn:eu.agno3.jcifs/jcifs-ng/2.1.6" REQUIRED="true" />
        <IMPORT NAME="bcprov-jdk15on-1.64" MODULE="bcprov-jdk15on-1.64.jar" MVN="mvn:org.bouncycastle/bcprov-jdk15on/1.64" REQUIRED="true" />
        <IMPORT NAME="slf4j-api" MODULE="slf4j-api-1.7.25.jar" MVN="mvn:org.slf4j/slf4j-api/1.7.25/jar" REQUIRED="true" />
        <IMPORT NAME="slf4j-log4j12" MODULE="slf4j-log4j12-1.7.25.jar" MVN="mvn:org.slf4j/slf4j-log4j12/1.7.25/jar" REQUIRED="true" />

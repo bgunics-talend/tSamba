@@ -24,8 +24,13 @@ https://www.qvera.com/kb/index.php/2243/what-are-the-network-share-configuration
 * tSambaFileCopy is not migrated.
 * tSambaWaitForFile is not migrated.
 
+
 ### Changelog: 
 v2.0 - 2020 July 02 - Initial release.
 
 ### Changelog: 
 v2.1 - Added Streaming option for Input component
+
+v2.2 - Changed the SDK to jcifs-ng
+Refactored the connection to an external utils file.
+No dedicated connection component yet.
