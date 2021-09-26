@@ -10,6 +10,9 @@
 %>
 
 <%
+boolean useExistingConnection = ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__").equals("true");
+String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
+
 String host = ElementParameterParser.getValue(node, "__HOST__");
 String user = ElementParameterParser.getValue(node, "__USERNAME__");
 String remotefile = ElementParameterParser.getValue(node, "__REMOTEFILE__");
@@ -24,8 +27,13 @@ String proxyUser = ElementParameterParser.getValue(node,"__PROXY_USERNAME__");
 boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
 
 List<Map<String, String>> jcifs_config = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__JCIFS_CONFIG__");
-%>
 
+if(useExistingConnection) {
+%>
+	jcifs.CIFSContext cifsContext_<%=cid%> = (jcifs.CIFSContext) globalMap.get("<%=connection%>_cifsContext");
+<%
+} else {
+%>
 <%
 //Since we never put false to globalMap it can only return null or true, 
 // if it returns null then we use the isEanbleDebug flag, and when  that's true 
@@ -89,3 +97,7 @@ if(useProxy){
     	<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
 
 		cifsContext_<%=cid%> = cifsContext_<%=cid%>.withCredentials(new jcifs.smb.NtlmPasswordAuthenticator(<%=domain%>, <%=user%>, decryptedPassword_<%=cid%>));
+
+<%
+}
+%>
