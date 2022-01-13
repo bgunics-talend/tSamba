@@ -17,85 +17,18 @@
 <%
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();	
-	String host = ElementParameterParser.getValue(node, "__HOST__");
-	String user = ElementParameterParser.getValue(node, "__USERNAME__");
-//	String pass = ElementParameterParser.getValue(node, "__PASSWORD__");
-	String remotefile = ElementParameterParser.getValue(node, "__REMOTEFILE__");
-	String shareddirectory=ElementParameterParser.getValue(node, "__SHAREDIR__");
-	String domain=ElementParameterParser.getValue(node, "__DOMAIN__");
-		
-	boolean useProxy = ElementParameterParser.getValue(node,"__USE_PROXY__").equals("true");
-	String proxyHost = ElementParameterParser.getValue(node,"__PROXY_HOST__");
-	String proxyPort = ElementParameterParser.getValue(node,"__PROXY_PORT__");
-	String proxyUser = ElementParameterParser.getValue(node,"__PROXY_USERNAME__");
-//	String proxyPassword = ElementParameterParser.getValue(node,"__PROXY_PASSWORD__");
 	boolean MD5 = new Boolean(ElementParameterParser.getValue(node, "__MD5__"));
-	boolean isEnableDebug = ("true").equals(ElementParameterParser.getValue(node,"__ENABLE_DEBUG_MODE__"));
     	
 	String cid = node.getUniqueName();	
 
 
 	final boolean isLog4jEnabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__"));
+	final boolean isLog4j2Enabled = ("true").equals(ElementParameterParser.getValue(node.getProcess(), "__LOG4J2_ACTIVATE__"));//log4j2 enable
 	final boolean dieOnError = ("true").equals(ElementParameterParser.getValue(node, "__DIE_ON_ERROR__"));
-	List<Map<String, String>> jcifs_config = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node, "__JCIFS_CONFIG__");
 
 %>
+	<%@ include file="../tSambaConnection/tSambaConnection_utils.javajet"%>
 	String URLFile_<%=cid%>="smb://"+<%=host%>+"/"+<%=shareddirectory%>+"/"+<%=remotefile%>;
-<%
-//Since we never put false to globalMap it can only return null or true, 
-// if it returns null then we use the isEanbleDebug flag, and when  that's true 
-//then all the other tSamba components will work in Debug mode.
-%>
-if ( (boolean)globalMap.getOrDefault("tSamba_isEnableDebug",<%=isEnableDebug%>) ) { 
-	org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.DEBUG);
-	globalMap.put("tSamba_isEnableDebug", true);
-} else {
-	org.apache.log4j.LogManager.getLogger("jcifs").setLevel(org.apache.log4j.Level.INFO);
-}
-<%
-//The following part support the socks proxy for FTP and SFTP (Socks V4 or V5, they are all OK). 
-//And it can not work with the FTP proxy directly, only support the socks proxy.
-if(useProxy){
-%>
-{
-		if(<%=isLog4jEnabled%>){
-		log.debug("<%=cid%> - Enabling SOCKS proxy over "+<%=proxyHost %>+":"+<%=proxyPort %>+".");
-		}
-        java.util.Properties sysProps_<%=cid%> = System.getProperties();
-        sysProps_<%=cid%>.put("socksProxySet",  "true");
-        sysProps_<%=cid%>.put("socksProxyPort", <%=proxyPort %>);
-        sysProps_<%=cid%>.put("socksProxyHost", <%=proxyHost %>);
-        sysProps_<%=cid%>.put("java.net.socks.username", <%=proxyUser %>);
-<%
-            String passwordFieldName = "__PROXY_PASSWORD__";
-%>
-        <%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
-        sysProps_<%=cid%>.put("java.net.socks.password", decryptedPassword_<%=cid%>);
-}
-<%}%>
-
-		java.util.Properties props_<%=cid%> = new java.util.Properties();
-		//props_<%=cid%>.setProperty("jcifs.netbios.wins", <%=host%>);
-//Configure based on the properties table
-<%
-		for (int i=0; i<jcifs_config.size(); i++) {
-%>
-    		props_<%=cid%>.setProperty(<%=jcifs_config.get(i).get("KEY")%>,<%=jcifs_config.get(i).get("VALUE")%>);
-    		if(<%=isLog4jEnabled%>){
-    			log.trace("<%=cid%> - Setting JCIFS property key: '"+<%=jcifs_config.get(i).get("KEY")%>+"' value: '" + <%=jcifs_config.get(i).get("VALUE")%> + "'.");
-    		}
-<%
-		}
-%>
-		jcifs.CIFSContext cifsContext_<%=cid%> = new jcifs.context.BaseContext(new jcifs.config.PropertyConfiguration(props_<%=cid%>));
-
-<%
-	    String passwordFieldName = "__PASSWORD__";
-%>
-
-    	<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
-
-		cifsContext_<%=cid%> = cifsContext_<%=cid%>.withCredentials(new jcifs.smb.NtlmPasswordAuthenticator(<%=domain%>, <%=user%>, decryptedPassword_<%=cid%>));
 
 <%
 String outputConnName = null;
