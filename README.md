@@ -21,6 +21,10 @@ https://github.com/AgNO3/jcifs-ng/blob/master/src/main/java/jcifs/config/Propert
 
 * Components can be shared using Project Properties in studio via GIT / SVN.
 
+## Source code:
+Source code can be found at: https://github.com/bgunics-talend/tSamba
+
+
 ### TODO:
 * tSambaFileCopy is not migrated.
 * tSambaWaitForFile is not migrated.
